@@ -28,5 +28,6 @@ typedef struct mnist_dataset {
 
 bool read_mnist_dataset(t_mnist_dataset *database, char *imagesFilePath, char *labelsFilePath);
 void dispose_mnist_dataset(t_mnist_dataset *dataset);
+uint8_t *get_image(uint8_t *images, int index);
 
 #endif //C_NEURAL_NET_MNIST_MNIST_H

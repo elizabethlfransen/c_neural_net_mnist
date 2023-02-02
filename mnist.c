@@ -37,10 +37,20 @@ bool try_read_magic_number(FILE *stream, uint32_t expected_magic_number, FILE *o
     return true;
 }
 
+bool try_read_image_size(FILE *stream, uint32_t expected_size, FILE *other) {
+    uint32_t image_size;
+    if (!try_read_uint32_t(&image_size, stream, other))
+        return false;
+    if (image_size != expected_size) {
+        return cleanup(stream, other);
+    }
+    return true;
+}
+
 
 bool read_mnist_dataset(t_mnist_dataset *dataset, char *imagesFilePath, char *labelsFilePath) {
     FILE *images_file, *labels_file;
-    uint32_t magic, image_count, label_count;
+    uint32_t image_count, label_count;
 
 
     // initialize
@@ -72,8 +82,14 @@ bool read_mnist_dataset(t_mnist_dataset *dataset, char *imagesFilePath, char *la
     }
 
     dataset->count = image_count;
+    if (!try_read_image_size(images_file, MNIST_IMAGE_SIZE, labels_file))
+        return false;
+    if (!try_read_image_size(images_file, MNIST_IMAGE_SIZE, labels_file))
+        return false;
+
+
     // allocate space for images and labels
-    dataset->images = malloc(sizeof(uint8_t) * MNIST_IMAGE_PIXEL_COUNT * image_count);
+    dataset->images = malloc(MNIST_IMAGE_PIXEL_COUNT * image_count);
     if (dataset->images == NULL) {
         return cleanup(images_file, labels_file);
     }
@@ -81,10 +97,11 @@ bool read_mnist_dataset(t_mnist_dataset *dataset, char *imagesFilePath, char *la
     if (dataset->images == NULL) {
         return cleanup(images_file, labels_file);
     }
-    if(fread(dataset->images, sizeof(uint8_t) * MNIST_IMAGE_PIXEL_COUNT, image_count,images_file) != image_count) {
+
+    if (fread(dataset->images, MNIST_IMAGE_PIXEL_COUNT, image_count, images_file) != image_count) {
         return cleanup(images_file, labels_file);
     }
-    if(fread(dataset->labels, sizeof(uint8_t), label_count, labels_file) != label_count) {
+    if (fread(dataset->labels, sizeof(uint8_t), label_count, labels_file) != label_count) {
         return cleanup(images_file, labels_file);
     }
 
@@ -96,4 +113,8 @@ bool read_mnist_dataset(t_mnist_dataset *dataset, char *imagesFilePath, char *la
 void dispose_mnist_dataset(t_mnist_dataset *dataset) {
     free(dataset->images);
     free(dataset->labels);
+}
+
+uint8_t *get_image(uint8_t *images, int index) {
+    return images + (sizeof(uint8_t) * MNIST_IMAGE_PIXEL_COUNT * index);
 }
